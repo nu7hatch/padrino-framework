@@ -1,6 +1,5 @@
 require File.expand_path('../../../load_paths', __FILE__)
-require 'test/unit'
-require 'shoulda'
+require 'riot'
 require 'mocha'
 require 'rack/test'
 require 'webrat'
@@ -10,14 +9,10 @@ require 'padrino-core/support_lite' unless defined?(SupportLite)
 
 Padrino::Generators.load_components!
 
-class Test::Unit::TestCase
-  include Rack::Test::Methods
-  include Webrat::Methods
-  include Webrat::Matchers
+Riot.reporter = Riot::DotMatrixReporter
 
-  Webrat.configure do |config|
-    config.mode = :rack
-  end
+class Riot::Situation
+  include Rack::Test::Methods
 
   def stop_time_for_test
     time = Time.now
@@ -30,44 +25,32 @@ class Test::Unit::TestCase
     "Padrino::Generators::#{name.to_s.camelize}".constantize.start(params)
   end
 
+end
+
+class Riot::Context
+  include Webrat::Methods
+  include Webrat::Matchers
+
+  Webrat.configure { |config| config.mode = :rack }
+
   # assert_has_tag(:h1, :content => "yellow") { "<h1>yellow</h1>" }
   # In this case, block is the html to evaluate
   def assert_has_tag(name, attributes = {}, &block)
     html = block && block.call
-    matcher = HaveSelector.new(name, attributes)
-    raise "Please specify a block!" if html.blank?
-    assert matcher.matches?(html), matcher.failure_message
-  end
-
-  # assert_has_no_tag, tag(:h1, :content => "yellow") { "<h1>green</h1>" }
-  # In this case, block is the html to evaluate
-  def assert_has_no_tag(name, attributes = {}, &block)
-    html = block && block.call
-    attributes.merge!(:count => 0)
-    matcher = HaveSelector.new(name, attributes)
-    raise "Please specify a block!" if html.blank?
-    assert matcher.matches?(html), matcher.failure_message
+    asserts("match #{name} with #{attributes.inspect}") { HaveSelector.new(name, attributes).matches?(html) }
   end
 
   # assert_file_exists('/tmp/app')
   def assert_file_exists(file_path)
-    assert File.exist?(file_path), "File at path '#{file_path}' does not exist!"
+    asserts("#{file_path}") { File.exists?(file_path) }
   end
   alias :assert_dir_exists :assert_file_exists
 
-  # assert_no_file_exists('/tmp/app')
-  def assert_no_file_exists(file_path)
-    assert !File.exist?(file_path), "File should not exist at path '#{file_path}' but was found!"
-  end
-  alias :assert_no_dir_exists :assert_no_file_exists
-
   # Asserts that a file matches the pattern
   def assert_match_in_file(pattern, file)
-    File.exist?(file) ? assert_match(pattern, File.read(file)) : assert_file_exists(file)
-  end
-
-  def assert_no_match_in_file(pattern, file)
-    File.exists?(file) ? !assert_match(pattern, File.read(file)) : assert_file_exists(file)
+    asserts "#{file} has pattern #{pattern}" do
+      File.exist?(file) ? File.read(file) =~ pattern : assert_file_exists(file)    
+    end
   end
 end
 

@@ -48,6 +48,7 @@ group :db do
 end
 
 group :development do
+  gem "riot",  ">= 0.11.0"
   gem "rake",  ">= 0.8.7"
   gem "mocha", ">= 0.9.8"
   gem "rack-test", ">= 0.5.0"
