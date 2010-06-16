@@ -33,11 +33,26 @@ class Riot::Context
 
   Webrat.configure { |config| config.mode = :rack }
 
+  #clean up the testing directory
+  def clean_up!(path="/tmp/sample_project")
+    setup { system("rm -rf #{path}") }
+    teardown { system("rm -rf #{path}") }
+  end
+
   # assert_has_tag(:h1, :content => "yellow") { "<h1>yellow</h1>" }
   # In this case, block is the html to evaluate
   def assert_has_tag(name, attributes = {}, &block)
     html = block && block.call
     asserts("match #{name} with #{attributes.inspect}") { HaveSelector.new(name, attributes).matches?(html) }
+  end
+
+  def assert_match(matchee, pattern)
+    pattern = pattern.is_a?(String) ? Regexp.new(Regexp.escape(pattern)) : pattern
+    asserts("#{matchee} matches #{pattern}") { matchee =~ pattern}
+  end
+  
+  def assert_no_match(matchee, pattern)
+    assert_match(matchee, pattern).not!
   end
 
   # assert_file_exists('/tmp/app')
@@ -46,12 +61,20 @@ class Riot::Context
   end
   alias :assert_dir_exists :assert_file_exists
 
+  def assert_no_file_exists(file_path)
+    assert_file_exists(file_path).not!
+  end
+  alias :assert_no_dir_exists :assert_no_file_exists
+
   # Asserts that a file matches the pattern
   def assert_match_in_file(pattern, file)
-    asserts "#{file} has pattern #{pattern}" do
-      File.exist?(file) ? File.read(file) =~ pattern : assert_file_exists(file)    
-    end
+    File.exist?(file) ? assert_match(File.read(file), pattern) : assert_file_exists(file)
   end
+  
+  def assert_no_match_in_file(pattern, file)
+    assert_match_in_file(pattern, file).not!
+  end
+  
 end
 
 class Object

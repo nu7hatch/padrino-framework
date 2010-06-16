@@ -1,7 +1,7 @@
 require File.expand_path(File.dirname(__FILE__) + '/helper')
 
 context "Mailer Generator" do
-  setup { `rm -rf /tmp/sample_project` }
+  clean_up!
 
   context "outside app root" do
     setup { silence_logger { generate(:mailer, 'demo', '-r=/tmp') } }
