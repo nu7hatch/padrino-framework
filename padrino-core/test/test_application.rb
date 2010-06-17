@@ -2,50 +2,57 @@ require File.expand_path(File.dirname(__FILE__) + '/helper')
 
 class PadrinoTestApp < Padrino::Application; end
 
-class TestApplication < Test::Unit::TestCase
-  def teardown
-    remove_views
+context "Application" do
+  teardown { remove_views }
+
+  context "default options" do
+    asserts("identical files") { File.identical?(__FILE__, PadrinoTestApp.app_file) }
+    asserts("app name") { PadrinoTestApp.app_name }.equals :padrino_test_app
+    asserts("environment") { PadrinoTestApp.environment }.equals :test
+    asserts("views") { PadrinoTestApp.views }.equals Padrino.root('views')
+    asserts("raise errors enabled") { PadrinoTestApp.raise_errors }
+    asserts("logging enabled") { PadrinoTestApp.logging }.not!
+    asserts("sessions enabled") { PadrinoTestApp.sessions }.not!
   end
 
-  context 'for application functionality' do
+  context "padrino specific options" do
+    asserts("configured before setup") { PadrinoTestApp.instance_variable_get(:@_configured) }.not!
 
-    should 'check default options' do
-      assert File.identical?(__FILE__, PadrinoTestApp.app_file)
-      assert_equal :padrino_test_app, PadrinoTestApp.app_name
-      assert_equal :test, PadrinoTestApp.environment
-      assert_equal Padrino.root("views"), PadrinoTestApp.views
-      assert PadrinoTestApp.raise_errors
-      assert !PadrinoTestApp.logging
-      assert !PadrinoTestApp.sessions
+    context "setup!" do
+      setup { PadrinoTestApp.send(:setup_application!) }
+      asserts("app name") { PadrinoTestApp.app_name }.equals :padrino_test_app
+      asserts("default builder") { PadrinoTestApp.default_builder }.equals 'StandardFormBuilder'
+      asserts("configured after setup") { PadrinoTestApp.instance_variable_get(:@_configured) }
+      asserts("reload?") { PadrinoTestApp.reload? }.not!
+      asserts("flash enabled") { PadrinoTestApp.flash }.not!
     end
+  end
 
-    should 'check padrino specific options' do
-      assert !PadrinoTestApp.instance_variable_get(:@_configured)
-      PadrinoTestApp.send(:setup_application!)
-      assert_equal :padrino_test_app, PadrinoTestApp.app_name
-      assert_equal 'StandardFormBuilder', PadrinoTestApp.default_builder
-      assert PadrinoTestApp.instance_variable_get(:@_configured)
-      assert !PadrinoTestApp.reload?
-      assert !PadrinoTestApp.flash
-    end
-
-    #compare to: test_routing: allow global provides
-    should "set content_type to :html if none can be determined" do
+  context "content_type defaults to html" do
+    setup do
       mock_app do
         provides :xml
-
         get("/foo"){ "Foo in #{content_type}" }
         get("/bar"){ "Foo in #{content_type}" }
       end
-
-      get '/foo', {}, { 'HTTP_ACCEPT' => 'application/xml' }
-      assert_equal 'Foo in xml', body
-      get '/foo'
-      assert not_found?
-
-      get '/bar', {}, { 'HTTP_ACCEPT' => 'application/xml' }
-      assert_equal "Foo in html", body
     end
 
+    context "/foo" do
+      context "with xml" do
+        setup { get '/foo', {}, { 'HTTP_ACCEPT' => 'application/xml' } }
+        asserts("xml") { body }.equals 'Foo in xml'
+      end
+
+      context "with none" do
+        setup { get '/foo' }
+        asserts("not found") { not_found? }
+      end
+    end
+
+    context "/bar" do
+      setup { get '/bar', {}, { 'HTTP_ACCEPT' => 'application/xml' } }
+      asserts("html") { body }.equals "Foo in html"
+    end
   end
+
 end
