@@ -1,27 +1,30 @@
 require File.expand_path(File.dirname(__FILE__) + '/helper')
 
-class TestDependencies < Test::Unit::TestCase
-  context 'when we require a dependency that have another dependecy' do
+context "Dependencies" do
 
-    should 'raise an error without padrino' do
-      assert_raise NameError do
+  context "requiring dependencies with their own dependency" do
+
+    context "will raise an error without padrino" do
+      asserts "requires" do
         require "fixtures/dependencies/a.rb"
         require "fixtures/dependencies/b.rb"
         require "fixtures/dependencies/c.rb"
-      end
+      end.raises NameError
     end
 
-    should 'resolve dependency problems' do
-      silence_warnings do
-        Padrino.require_dependencies(
-          Padrino.root("fixtures/dependencies/a.rb"),
-          Padrino.root("fixtures/dependencies/b.rb"),
-          Padrino.root("fixtures/dependencies/c.rb")
-        )
+    context "resolve the dependency problem" do
+      setup do
+        silence_warnings do
+          Padrino.require_dependencies(
+            Padrino.root("fixtures/dependencies/a.rb"),
+            Padrino.root("fixtures/dependencies/b.rb"),
+            Padrino.root("fixtures/dependencies/c.rb"))
+        end
       end
-      assert_equal ["B", "A"], A_result
-      assert_equal ["C", "B"], B_result
+      asserts("A Result") { A_result }.equals ['B','A']
+      asserts("B Result") { B_result }.equals ['C','B']
+      
     end
+
   end
-
 end
