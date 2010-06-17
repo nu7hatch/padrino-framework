@@ -4,9 +4,9 @@ PADRINO_ROOT = File.dirname(__FILE__) unless defined? PADRINO_ROOT
 require File.expand_path('../../../load_paths', __FILE__)
 require 'padrino-core'
 require 'test/unit'
+require 'riot'
 require 'rack/test'
 require 'rack'
-require 'shoulda'
 
 module Kernel
   # Silences the output by redirecting to stringIO
@@ -33,7 +33,21 @@ class Class
   include Test::Unit::Assertions
 end
 
-class Test::Unit::TestCase
+Riot.reporter = Riot::DotMatrixReporter
+
+class Riot::Context
+  def assert_match(matchee, pattern)
+    pattern = pattern.is_a?(String) ? Regexp.new(Regexp.escape(pattern)) : pattern
+    asserts("#{matchee} matches #{pattern}") { matchee =~ pattern}
+  end
+
+  # Asserts that a file matches the pattern
+  def assert_match_in_file(pattern, file)
+    File.exist?(file) ? assert_match(File.read(file), pattern) : assert_file_exists(file)
+  end
+end
+
+class Riot::Situation
   include Rack::Test::Methods
 
   # Sets up a Sinatra::Base subclass defined with the block
@@ -45,12 +59,6 @@ class Test::Unit::TestCase
 
   def app
     Rack::Lint.new(@app)
-  end
-
-  # Asserts that a file matches the pattern
-  def assert_match_in_file(pattern, file)
-    assert File.exist?(file), "File '#{file}' does not exist!"
-    assert_match pattern, File.read(file)
   end
 
   # Delegate other missing methods to response.
