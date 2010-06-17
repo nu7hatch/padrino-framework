@@ -6,25 +6,26 @@ context "Application" do
   teardown { remove_views }
 
   context "default options" do
+    setup { PadrinoTestApp }
     asserts("identical files") { File.identical?(__FILE__, PadrinoTestApp.app_file) }
-    asserts("app name") { PadrinoTestApp.app_name }.equals :padrino_test_app
-    asserts("environment") { PadrinoTestApp.environment }.equals :test
-    asserts("views") { PadrinoTestApp.views }.equals Padrino.root('views')
-    asserts("raise errors enabled") { PadrinoTestApp.raise_errors }
-    asserts("logging enabled") { PadrinoTestApp.logging }.not!
-    asserts("sessions enabled") { PadrinoTestApp.sessions }.not!
+    asserts(:app_name).equals :padrino_test_app
+    asserts(:environment).equals :test
+    asserts(:views) { PadrinoTestApp.views }.equals Padrino.root('views')
+    asserts(:raise_errors)
+    asserts(:logging).not!
+    asserts(:sessions).not!
   end
 
   context "padrino specific options" do
     asserts("configured before setup") { PadrinoTestApp.instance_variable_get(:@_configured) }.not!
 
     context "setup!" do
-      setup { PadrinoTestApp.send(:setup_application!) }
-      asserts("app name") { PadrinoTestApp.app_name }.equals :padrino_test_app
-      asserts("default builder") { PadrinoTestApp.default_builder }.equals 'StandardFormBuilder'
+      setup { PadrinoTestApp.send(:setup_application!) ; PadrinoTestApp }
+      asserts(:app_name).equals :padrino_test_app
+      asserts(:default_builder).equals 'StandardFormBuilder'
       asserts("configured after setup") { PadrinoTestApp.instance_variable_get(:@_configured) }
-      asserts("reload?") { PadrinoTestApp.reload? }.not!
-      asserts("flash enabled") { PadrinoTestApp.flash }.not!
+      asserts(:reload?).not!
+      asserts(:flash).not!
     end
   end
 

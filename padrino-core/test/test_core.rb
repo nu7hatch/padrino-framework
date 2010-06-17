@@ -16,10 +16,10 @@ context "Core" do
 
   context "global helpers" do
     setup { Padrino }
-    asserts("env") { topic.env }.equals :test
-    asserts("root") { topic.root }.matches %r{test}
-    asserts("bundle") { topic.bundle }.nil
-    asserts("version") { topic.version }.exists
+    asserts(:env).equals :test
+    asserts(:root).matches %r{test}
+    asserts(:bundle).nil
+    asserts(:version).exists
   end
 
   context "encoding" do
