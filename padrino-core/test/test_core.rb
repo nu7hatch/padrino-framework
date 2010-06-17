@@ -1,40 +1,42 @@
 require File.expand_path(File.dirname(__FILE__) + '/helper')
 
-class TestCore < Test::Unit::TestCase
-  context 'for core functionality' do
+context "Core" do
 
-    should 'check some global methods' do
-      assert_respond_to Padrino, :root
-      assert_respond_to Padrino, :env
-      assert_respond_to Padrino, :application
-      assert_respond_to Padrino, :set_encoding
-      assert_respond_to Padrino, :load!
-      assert_respond_to Padrino, :reload!
-      assert_respond_to Padrino, :version
-      assert_respond_to Padrino, :bundle
-    end
+  context "global methods" do
+    setup { Padrino }
+    asserts_topic.respond_to :root
+    asserts_topic.respond_to :env
+    asserts_topic.respond_to :application
+    asserts_topic.respond_to :set_encoding
+    asserts_topic.respond_to :load!
+    asserts_topic.respond_to :reload!
+    asserts_topic.respond_to :version
+    asserts_topic.respond_to :bundle
+  end
 
-    should 'validate global helpers' do
-      assert_equal :test, Padrino.env
-      assert_match /\/test/, Padrino.root
-      assert_equal nil, Padrino.bundle
-      assert_not_nil Padrino.version
-    end
+  context "global helpers" do
+    setup { Padrino }
+    asserts("env") { topic.env }.equals :test
+    asserts("root") { topic.root }.matches %r{test}
+    asserts("bundle") { topic.bundle }.nil
+    asserts("version") { topic.version }.exists
+  end
 
-    should 'set correct utf-8 encoding' do
-      Padrino.set_encoding
-      if RUBY_VERSION <'1.9'
-        assert_equal 'UTF8', $KCODE
-      end
-    end
-
-    should 'have load paths' do
-      assert_equal [Padrino.root('lib'), Padrino.root('models'), Padrino.root('shared')], Padrino.load_paths
-    end
-
-    should 'raise application error if I instantiate a new padrino application without mounted apps' do
-      Padrino.mounted_apps.clear
-      assert_raise(Padrino::ApplicationLoadError) { Padrino.application.new }
+  context "encoding" do
+    setup { Padrino.set_encoding }
+    if RUBY_VERSION < '1.9'
+      asserts("utf8") { $KCODE }.equals('UTF8')
     end
   end
+
+  context "load paths" do
+    setup { Padrino.load_paths }
+    asserts_topic.equivalent_to [Padrino.root('lib'), Padrino.root('models'), Padrino.root('shared')]
+  end
+
+  context 'I instantiate a new padrino application without mounted apps' do
+    setup { Padrino.mounted_apps.clear }
+    asserts("will raise error") { Padrino.application.new }.raises Padrino::ApplicationLoadError
+  end
+
 end
