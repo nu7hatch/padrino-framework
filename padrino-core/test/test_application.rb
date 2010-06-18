@@ -10,7 +10,7 @@ context "Application" do
     asserts("identical files") { File.identical?(__FILE__, PadrinoTestApp.app_file) }
     asserts(:app_name).equals :padrino_test_app
     asserts(:environment).equals :test
-    asserts(:views) { PadrinoTestApp.views }.equals Padrino.root('views')
+    asserts(:views).equals Padrino.root('views')
     asserts(:raise_errors)
     asserts(:logging).not!
     asserts(:sessions).not!
