@@ -34,14 +34,14 @@ class TestMounter < Test::Unit::TestCase
 
     should 'mount an app' do
       class ::AnApp < Padrino::Application; end
-      Padrino.mount_core("an_app")
+      Padrino.mount("an_app").to("/")
       assert_equal AnApp, Padrino.mounted_apps.first.app_obj
-      assert_equal ["core"], Padrino.mounted_apps.collect(&:name)
+      assert_equal ["an_app"], Padrino.mounted_apps.collect(&:name)
     end
 
     should 'mount a core' do
-      mounter = Padrino.mount_core("test", :app_file => __FILE__)
-      assert_equal "core", mounter.name
+      mounter = Padrino.mount("test", :app_file => __FILE__).to("/")
+      assert_equal "test", mounter.name
       assert_equal "Test", mounter.app_class
       assert_equal Test, mounter.app_obj
       assert_equal __FILE__, mounter.app_file
@@ -50,8 +50,8 @@ class TestMounter < Test::Unit::TestCase
     end
 
     should 'mount a core to url' do
-      mounter = Padrino.mount_core("test", :app_file => __FILE__).to('/me')
-      assert_equal "core", mounter.name
+      mounter = Padrino.mount("test", :app_file => __FILE__).to('/me')
+      assert_equal "test", mounter.name
       assert_equal "Test", mounter.app_class
       assert_equal Test, mounter.app_obj
       assert_equal __FILE__, mounter.app_file
@@ -82,6 +82,47 @@ class TestMounter < Test::Unit::TestCase
       assert_equal Padrino.root("apps", "test", "app.rb"), Padrino.mounted_root("test", "app.rb")
       Padrino.mounted_root = nil
       assert_equal Padrino.root("test", "app.rb"), Padrino.mounted_root("test", "app.rb")
+    end
+
+    should "be able to access routes data for mounted apps" do
+      class ::OneApp < Padrino::Application
+        get("/test") { "test" }
+        get(:index, :provides => [:js, :json]) { "index" }
+        controllers :posts do
+          get(:index) { "index" }
+          get(:new, :provides => :js) { "new" }
+          get(:show, :provides => [:js, :html], :with => :id) { "show" }
+          post(:create, :provides => :js, :with => :id) { "create" }
+        end
+      end
+      class ::TwoApp < Padrino::Application
+        controllers :users do
+          get(:index) { "users" }
+          get(:new) { "users new" }
+          post(:create) { "users create" }
+          put(:update) { "users update" }
+          delete(:destroy) { "users delete" }
+        end
+      end
+
+      Padrino.mount("one_app").to("/")
+      Padrino.mount("two_app").to("/two_app")
+
+      assert_equal 11, Padrino.mounted_apps[0].routes.size
+      assert_equal 7, Padrino.mounted_apps[1].routes.size
+      assert_equal 5, Padrino.mounted_apps[0].named_routes.size
+      assert_equal 5, Padrino.mounted_apps[1].named_routes.size
+
+      first_route = Padrino.mounted_apps[0].named_routes[3]
+      assert_equal "posts_show", first_route.identifier.to_s
+      assert_equal "(:posts, :show)", first_route.name
+      assert_equal "GET", first_route.verb
+      assert_equal "/posts/show/:id(.:format)", first_route.path
+      another_route = Padrino.mounted_apps[1].named_routes[2]
+      assert_equal "users_create", another_route.identifier.to_s
+      assert_equal "(:users, :create)", another_route.name
+      assert_equal "POST", another_route.verb
+      assert_equal "/two_app/users/create", another_route.path
     end
 
     should 'correctly instantiate a new padrino application' do

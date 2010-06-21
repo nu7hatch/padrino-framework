@@ -52,7 +52,7 @@ class TestRouting < Test::Unit::TestCase
     get "/my/2/bar"
     assert_equal "2", body
   end
-  
+
   should "not generate overlapping head urls" do
     app = mock_app do
       get("/main"){ "hello" }
@@ -158,6 +158,31 @@ class TestRouting < Test::Unit::TestCase
     assert_equal "Test\n", body
     get "/foo.rss"
     assert_equal "Test\n", body
+  end
+
+  should "should inject the controller name into the request" do
+    mock_app do
+      controller :posts do
+        get(:index) { request.controller }
+        controller :mini do
+          get(:index) { request.controller }
+        end
+      end
+    end
+    get "/posts"
+    assert_equal "posts", body
+    get "/mini"
+    assert_equal "mini", body
+  end
+
+  should "should inject the route into the request" do
+    mock_app do
+      controller :posts do
+        get(:index) { request.route.named.to_s }
+      end
+    end
+    get "/posts"
+    assert_equal "posts_index", body
   end
 
   should "generate routes for format with controller" do
@@ -574,6 +599,17 @@ class TestRouting < Test::Unit::TestCase
     assert_equal 'html', body
   end
 
+  should "set content_type to :html if Accept */*" do
+    mock_app do
+      get("/foo", :provides => [:html, :js]) { content_type.to_s }
+    end
+    get '/foo', {}, {}
+    assert_equal 'html', body
+
+    get '/foo', {}, { 'HTTP_ACCEPT' => '*/*;q=0.5' }
+    assert_equal 'html', body
+  end
+
   should 'allows custom route-conditions to be set via route options' do
     protector = Module.new {
       def protect(*args)
@@ -695,6 +731,38 @@ class TestRouting < Test::Unit::TestCase
     assert_equal "bar2", body
   end
 
+  should "parse two routes with the same path but different http verbs" do
+    mock_app do
+      get(:index) { "This is the get index" }
+      post(:index) { "This is the post index" }
+    end
+    get "/"
+    assert_equal "This is the get index", body
+    post "/"
+    assert_equal "This is the post index", body
+  end
+
+  should "parse two routes with the same path but different http verbs and provides" do
+    mock_app do
+      get(:index, :provides => [:html, :json]) { "This is the get index.#{content_type}" }
+      post(:index, :provides => [:html, :json]) { "This is the post index.#{content_type}" }
+    end
+    get "/"
+    assert_equal "This is the get index.html", body
+    post "/"
+    assert_equal "This is the post index.html", body
+    get "/.json"
+    assert_equal "This is the get index.json", body
+    get "/.js"
+    assert_equal 404, status
+    assert_match "Sinatra doesn't know this ditty", body
+    post "/.json"
+    assert_equal "This is the post index.json", body
+    post "/.js"
+    assert_match "Sinatra doesn't know this ditty", body
+    assert_equal 404, status
+  end
+
   should "work with params and parent options" do
     mock_app do
       controller :test2, :parent => :parent1, :parent1_id => 1 do
@@ -734,5 +802,61 @@ class TestRouting < Test::Unit::TestCase
     assert_equal "post bar = hello", body
     post "/foos/hello.js"
     assert_equal "post bar = hello", body
+  end
+
+  should "properly route to first foo with two similar routes" do
+    mock_app do
+      controllers do
+        get('/foo/') { "this is foo" }
+        get(:show, :map => "/foo/:bar/:id") { "/foo/#{params[:bar]}/#{params[:id]}" }
+      end
+    end
+    get "/foo"
+    assert_equal "this is foo", body
+    # TODO fix this in http_router, should pass
+    get "/foo/"
+    assert_equal "this is foo", body
+    get '/foo/5/10'
+    assert_equal "/foo/5/10", body
+  end
+
+  should "parse params with class level provides" do
+    mock_app do
+      controllers :posts, :provides => [:html, :js] do
+        post(:create, :map => "/foo/:bar/:baz/:id") {
+          "POST CREATE #{params[:bar]} - #{params[:baz]} - #{params[:id]}"
+        }
+      end
+      controllers :topics, :provides => [:js, :html] do
+        get(:show, :map => "/foo/:bar/:baz/:id") { render "topics/show" }
+        post(:create, :map => "/foo/:bar/:baz") { "TOPICS CREATE #{params[:bar]} - #{params[:baz]}" }
+      end
+    end
+    post "/foo/bar/baz.js"
+    assert_equal "TOPICS CREATE bar - baz", body, "should parse params with explicit .js"
+    post @app.url(:topics, :create, :format => :js, :bar => 'bar', :baz => 'baz')
+    assert_equal "TOPICS CREATE bar - baz", body, "should parse params from generated url"
+    post "/foo/bar/baz/5.js"
+    assert_equal "POST CREATE bar - baz - 5", body
+    post @app.url(:posts, :create, :format => :js, :bar => 'bar', :baz => 'baz', :id => 5)
+    assert_equal "POST CREATE bar - baz - 5", body
+  end
+
+  should "parse params properly with inline provides" do
+    mock_app do
+      controllers :posts do
+        post(:create, :map => "/foo/:bar/:baz/:id", :provides => [:html, :js]) {
+          "POST CREATE #{params[:bar]} - #{params[:baz]} - #{params[:id]}"
+        }
+      end
+      controllers :topics do
+        get(:show, :map => "/foo/:bar/:baz/:id", :provides => [:html, :js]) { render "topics/show" }
+        post(:create, :map => "/foo/:bar/:baz", :provides => [:html, :js]) { "TOPICS CREATE #{params[:bar]} - #{params[:baz]}" }
+      end
+    end
+    post @app.url(:topics, :create, :format => :js, :bar => 'bar', :baz => 'baz')
+    assert_equal "TOPICS CREATE bar - baz", body, "should properly post to topics create action"
+    post @app.url(:posts, :create, :format => :js, :bar => 'bar', :baz => 'baz', :id => 5)
+    assert_equal "POST CREATE bar - baz - 5", body, "should properly post to create action"
   end
 end

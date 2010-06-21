@@ -31,18 +31,18 @@ module Padrino
 
       # Definitions for the available customizable components
       component_option :orm,        "database engine",    :aliases => '-d', :choices => [:activerecord, :datamapper, :mongomapper, :mongoid, :sequel, :couchrest], :default => :none
-      component_option :test,       "testing framework",  :aliases => '-t', :choices => [:rspec, :shoulda, :cucumber, :bacon, :testspec, :riot], :default => :rspec
+      component_option :test,       "testing framework",  :aliases => '-t', :choices => [:rspec, :shoulda, :cucumber, :bacon, :testspec, :riot], :default => :none
       component_option :mock,       "mocking library",    :aliases => '-m', :choices => [:mocha, :rr], :default => :none
       component_option :script,     "javascript library", :aliases => '-s', :choices => [:jquery, :prototype, :rightjs, :mootools, :extcore, :dojo], :default => :none
       component_option :renderer,   "template engine",    :aliases => '-e', :choices => [:haml, :erb], :default => :haml
-      component_option :stylesheet, "stylesheet engine",  :aliases => '-c', :choices => [:less, :sass], :default => :none
+      component_option :stylesheet, "stylesheet engine",  :aliases => '-c', :choices => [:less, :sass, :compass], :default => :none
 
       # Show help if no argv given
       require_arguments!
 
       # Copies over the Padrino base application App
       def setup_project
-        @app_name = (options[:app] || name).gsub(/\W/, "_").underscore.classify
+        @app_name = (options[:app] || name).gsub(/\W/, "_").underscore.camelize
         self.destination_root = File.join(options[:root], name)
         if options[:template] # Run the template to create project
           execute_runner(:template, options[:template])
@@ -73,16 +73,20 @@ module Padrino
 
       # Finish message
       def finish
-        say (<<-TEXT).gsub(/ {8}/,'')
+        unless options[:run_bundle]
+          say (<<-TEXT).gsub(/ {10}/,'')
 
-        =================================================================
-        #{name} is ready for development! Next, follow these steps:
-        =================================================================
-        1) cd #{name}
-        2) bundle install
-        =================================================================
+          =================================================================
+          #{name} is ready for development! Next, follow these steps:
+          =================================================================
+          1) cd #{name}
+          2) bundle install
+          =================================================================
 
-        TEXT
+          TEXT
+        else
+          say "Project '#{name}' has been generated and all dependencies bundled!"
+        end
       end
     end # Project
   end # Generators
