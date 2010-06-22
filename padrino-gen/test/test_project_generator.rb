@@ -253,7 +253,7 @@ class TestProjectGenerator < Test::Unit::TestCase
   end
 
   context "the generator for renderer component" do
-    should "properly generate default for erb" do
+    should "properly generate for erb" do
       buffer = silence_logger { generate(:project, 'sample_project', '--root=/tmp', '--renderer=erb', '--script=none') }
       assert_match /Applying.*?erb.*?renderer/, buffer
     end
@@ -311,7 +311,7 @@ class TestProjectGenerator < Test::Unit::TestCase
   end
 
   context "the generator for test component" do
-    should "properly default generate for bacon" do
+    should "properly generate for bacon" do
       buffer = silence_logger { generate(:project, 'sample_project', '--root=/tmp', '--test=bacon', '--script=none') }
       assert_match /Applying.*?bacon.*?test/, buffer
       assert_match_in_file(/gem 'rack-test'.*?:require => "rack\/test".*?:group => "test"/, '/tmp/sample_project/Gemfile')
