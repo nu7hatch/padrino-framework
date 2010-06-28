@@ -15,12 +15,12 @@ module Padrino
     attr_accessor :name, :uri_root, :app_file, :app_class, :app_root, :app_obj, :app_host
 
     def initialize(name, options={})
-      @name      = name.underscore
-      @app_class = options[:app_class] || name.classify
+      @name      = name.to_s.underscore
+      @app_class = options[:app_class] || @name.camelize
       @app_file  = options[:app_file]  || locate_app_file
-      raise MounterException, "Unable to locate app file for #{name}, try with :app_file => /path" unless @app_file
+      @app_obj   = options[:app_obj]   || app_constant || locate_app_object
+      ensure_app_file! || ensure_app_object!
       @app_root  = options[:app_root]  || File.dirname(@app_file)
-      @app_obj   = self.app_object
       @uri_root  = "/"
     end
 
@@ -67,21 +67,7 @@ module Padrino
       app_obj.set :public,   Padrino.root('public', app_data.uri_root)
       app_obj.set :static,   File.exist?(app_obj.public)
       app_obj.setup_application! # We need to initialize here the app.
-      router.map(:path => app_data.uri_root, :to => app_obj, :host => app_data.app_host)
-    end
-
-    ##
-    # Return the class for the app
-    #
-    def app_object
-      @_app_object ||= begin
-        app_class.constantize
-      rescue
-        if app_file
-          Padrino.require_dependencies(app_file)
-          app_class.constantize
-        end
-      end
+      router.map(:to => app_obj, :path => app_data.uri_root, :host => app_data.app_host)
     end
 
     ###
@@ -106,22 +92,58 @@ module Padrino
     end
 
     ##
+    # Makes two Mounters equal if they have the same name and uri_root
+    #
+    def ==(other)
+      other.is_a?(Mounter) && self.app_class == other.app_class && self.uri_root == other.uri_root
+    end
+    
+    protected
+    
+    ##
+    # Locates and requires the file to load the app constant
+    #
+    def locate_app_object
+      @_app_object ||= begin
+        ensure_app_file!
+        Padrino.require_dependencies(app_file)
+        app_constant
+      end
+    end
+
+    ##
     # Returns the determined location of the mounted application main file
     #
     def locate_app_file
       candidates  = []
-      candidates << app_object.app_file  if app_object.respond_to?(:app_file) && File.exist?(app_object.app_file)
+      candidates << app_constant.app_file if app_constant.respond_to?(:app_file) && File.exist?(app_constant.app_file.to_s)
       candidates << Padrino.first_caller if File.identical?(Padrino.first_caller.to_s, Padrino.called_from.to_s)
       candidates << Padrino.mounted_root(name, "app.rb")
       candidates << Padrino.root("app", "app.rb")
       candidates.find { |candidate| File.exist?(candidate) }
     end
-
+    
     ##
-    # Makes two Mounters equal if they have the same name and uri_root
+    # Returns the class object for the app if defined, nil otherwise
     #
-    def ==(other)
-      other.is_a?(Mounter) && self.name == other.name && self.uri_root == other.uri_root
+    def app_constant
+      app_class.constantize if Object.const_defined?(app_class)
+    end
+    
+    ###
+    # Raises an exception unless app_file is located properly
+    #
+    def ensure_app_file!
+      message = "Unable to locate source file for app '#{name}', try with :app_file => '/path/app.rb'"
+      raise MounterException, message unless @app_file
+    end
+    
+    ###
+    # Raises an exception unless app_obj is defined properly
+    #
+    def ensure_app_object!
+      message = "Unable to locate app for '#{name}', try with :app_class => 'MyAppClass'"
+      raise MounterException, message unless @app_obj
     end
   end
 
@@ -146,8 +168,7 @@ module Padrino
     # Inserts a Mounter object into the mounted applications (avoids duplicates)
     #
     def insert_mounted_app(mounter)
-      return false if Padrino.mounted_apps.include?(mounter)
-      Padrino.mounted_apps << mounter
+      Padrino.mounted_apps.push(mounter) unless Padrino.mounted_apps.include?(mounter)
     end
 
     ##
@@ -159,7 +180,7 @@ module Padrino
     #   Padrino.mount_core(:app_file => "/path/to/file", :app_class => "Blog")
     #
     def mount_core(*args)
-      # TODO Remove this in 0.9.13 or before 1.0
+      # TODO Remove this in 0.9.14 or pre 1.0
       warn "DEPRECATION! #{Padrino.first_caller}: Padrino.mount_core has been deprecated.\nUse Padrino.mount('AppName').to('/') instead"
       options = args.extract_options!
       app_class = args.size > 0 ? args.first.to_s.camelize : nil
