@@ -1,6 +1,4 @@
 require File.expand_path("../lib/padrino-core/version.rb", __FILE__)
-require 'rubygems'
-require 'bundler'
 
 Gem::Specification.new do |s|
   s.name = "padrino-core"
@@ -19,5 +17,16 @@ Gem::Specification.new do |s|
   s.files = %w(.document .gitignore LICENSE README.rdoc Rakefile padrino-core.gemspec) + Dir.glob("{bin,lib,test}/**/*")
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_path = 'lib'
-  s.add_bundler_dependencies :core, :development
+  s.add_runtime_dependency("sinatra", ">= 1.0.0")
+  s.add_runtime_dependency("http_router", ">= 0.3.0")
+  s.add_runtime_dependency("thor", ">= 0.13.0")
+  s.add_runtime_dependency("activesupport", ">= 2.3.8")
+  s.add_runtime_dependency("builder", ">= 2.1.2")
+  s.add_development_dependency("rake", ">= 0.8.7")
+  s.add_development_dependency("mocha", ">= 0.9.8")
+  s.add_development_dependency("rack-test", ">= 0.5.0")
+  s.add_development_dependency("fakeweb",  ">=1.2.8")
+  s.add_development_dependency("webrat", ">= 0.5.1")
+  s.add_development_dependency("haml", ">= 2.2.22")
+  s.add_development_dependency("shoulda", ">= 2.10.3")
 end
