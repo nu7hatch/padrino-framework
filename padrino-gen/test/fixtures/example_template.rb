@@ -7,8 +7,6 @@ generate :fake, "foo bar"
 
 require_dependencies 'nokogiri'
 
-inject_into_file "app/models/post.rb","#Hello", :after => "end\n"
-
 initializer :test, "# Example"
 
 app :testapp do

@@ -1,5 +1,4 @@
-project :test => :rspec, :orm => :activerecord, :dev => true
-create_file destination_root('test.txt'), "hello"
+project :test => :rspec, :orm => :activerecord
 git :init
 git :add, "."
 git :commit, "hello"

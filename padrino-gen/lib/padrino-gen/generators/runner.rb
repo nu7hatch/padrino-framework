@@ -7,7 +7,7 @@ module Padrino
       # Generates project scaffold based on a given template file
       # project :test => :shoulda, :orm => :activerecord, :renderer => "haml"
       def project(options={})
-        components = options.collect { |component, value| "--#{component}=#{value}" }
+        components = options.ordered_collect { |component,value| "--#{component}=#{value}" }
         params = [name, *components].push("-r=#{destination_root("../")}")
         say "=> Executing: padrino-gen #{name} #{params.join(" ")}", :magenta
         Padrino.bin_gen(*params.unshift("project"))
@@ -37,7 +37,7 @@ module Padrino
       # end
       def app(name, &block)
         say "=> Executing: padrino-gen app #{name} -r=#{destination_root}", :magenta
-        Padrino.bin_gen("app", name, "-r=#{destination_root}")
+        Padrino.bin_gen(:app, name.to_s, "-r=#{destination_root}")
         if block_given?
           @_app_name = name
           block.call
@@ -56,7 +56,7 @@ module Padrino
             ::Git.init(arguments || destination_root)
             say "Git repo has been initialized", :green
           else
-            @_git ||= Git.open(destination_root)
+            @_git ||= ::Git.open(destination_root)
             @_git.method(action).call(arguments)
           end
         end

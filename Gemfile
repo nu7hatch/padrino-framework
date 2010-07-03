@@ -24,6 +24,7 @@ end
 
 group :gen do
   gem "bundler", ">= 0.9.7"
+  gem "git"
 end
 
 group :helpers do
