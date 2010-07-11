@@ -7,7 +7,7 @@ class TestPluginGenerator < Test::Unit::TestCase
 
   context "the plugin destroy option" do
     should "remove the plugin instance" do
-      path = File.expand_path('../fixtures/test_plugin.rb', __FILE__)
+      path = File.expand_path('../fixtures/plugin_template.rb', __FILE__)
       silence_logger { generate(:project, 'sample_project', '--root=/tmp') }
       silence_logger { generate(:plugin, path, '--root=/tmp/sample_project') }
       silence_logger { generate(:plugin, path, '--root=/tmp/sample_project', '-d') }
