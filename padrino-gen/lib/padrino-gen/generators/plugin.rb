@@ -22,7 +22,7 @@ module Padrino
 
       class_option :root, :desc => "The root destination", :aliases => '-r', :default => ".",   :type => :string
       class_option :list, :desc => "list available plugins", :aliases => '-l', :default => false, :type => :boolean
-
+      class_option :destroy, :aliases => '-d', :default => false, :type => :boolean
       # Show help if no argv given
       require_arguments!
 
@@ -33,6 +33,7 @@ module Padrino
           say "Available plugins:", :green
           say plugins.map { |plugin| "  - #{plugin}" }.join("\n")
         else # executing the plugin instructions
+          self.behavior = :revoke if options[:destroy]
           self.destination_root = options[:root]
           execute_runner(:plugin, plugin_file)
         end
