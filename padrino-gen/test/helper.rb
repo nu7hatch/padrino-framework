@@ -51,7 +51,7 @@ class Test::Unit::TestCase
     raise "Please specify a block!" if html.blank?
     assert matcher.matches?(html), matcher.failure_message
   end
-
+  
   # assert_file_exists('/tmp/app')
   def assert_file_exists(file_path)
     assert File.exist?(file_path), "File at path '#{file_path}' does not exist!"
@@ -70,7 +70,7 @@ class Test::Unit::TestCase
   end
 
   def assert_no_match_in_file(pattern, file)
-    File.exists?(file) ? !assert_match(pattern, File.read(file)) : assert_file_exists(file)
+    File.exists?(file) ? assert_no_match(pattern, File.read(file)) : assert_file_exists(file)
   end
 
   # expects_generated :model, "post title:string body:text"
